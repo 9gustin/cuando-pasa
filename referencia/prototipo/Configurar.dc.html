@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nuevo viaje</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F4FB8}a:hover{color:#163A88}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F5F7; color: #15171C; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="padding: 20px; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border-bottom: 1px solid #E3E5EA">
+    <a href="Main.dc.html" aria-label="Volver" style="width: 44px; height: 44px; border-radius: 12px; background: #F0F2F5; display: flex; align-items: center; justify-content: center; color: #15171C">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 20px; font-weight: 800">Nuevo viaje</span>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 22px">
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="nombre" style="font-size: 13px; font-weight: 600; color: #4A5060">1 · Nombre del viaje</label>
+      <input id="nombre" value="Ir al trabajo" style="height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #CDD1D8; font-size: 15px; background: #FFFFFF">
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <label for="buscar" style="font-size: 13px; font-weight: 600; color: #4A5060">2 · ¿Dónde te tomás el bondi?</label>
+      <div style="display: flex; gap: 8px">
+        <input id="buscar" value="Castro Barros y Europa" style="flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #CDD1D8; font-size: 15px; background: #FFFFFF">
+        <button aria-label="Usar mi ubicación" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #CDD1D8; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #15171C">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><circle cx="12" cy="12" r="7"></circle></svg>
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #EEF3FD; border: 1px solid #BFD0F5">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F4FB8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+        <span style="font-size: 14px; font-weight: 600">Bv Castro Barros y Europa</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: #4A5060">3 · ¿Para qué lado vas?</span>
+      <div role="radiogroup" aria-label="Sentido" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{dirs}}" as="d" hint-placeholder-count="2">
+          <button role="radio" aria-checked="{{d.sel}}" onClick="{{d.pick}}" style="{{d.style}}">
+            <span style="font-size: 15px; font-weight: 700">{{d.title}}</span>
+            <span style="font-size: 12px; font-weight: 500">{{d.hint}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E3E5EA">
+        <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #4A5060">Tu parada</span>
+        <span style="font-size: 16px; font-weight: 800">{{stop.name}}</span>
+        <span style="font-size: 13px; color: #4A5060">{{stop.meta}}</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px">
+          <sc-for list="{{stop.lines}}" as="l" hint-placeholder-count="9">
+            <span style="min-width: 32px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #FFFFFF; background: #B35400">{{l}}</span>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: #4A5060; padding-top: 2px">Después, en la home, podés ocultar las líneas que no te sirven.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 20px 22px; background: #FFFFFF; border-top: 1px solid #E3E5EA">
+    <a href="Main.dc.html" style="height: 52px; border-radius: 14px; background: #15171C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; text-decoration: none">Crear viaje</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { dir: 'afuera' };
+  }
+  renderVals() {
+    const opts = [
+      { id: 'centro', title: 'Hacia el centro', hint: 'C. Universitaria, Ituzaingó…' },
+      { id: 'afuera', title: 'Hacia afuera', hint: 'V. Rivera Indarte, Saldán…' }
+    ];
+    const dirs = opts.map(o => {
+      const sel = o.id === this.state.dir;
+      return {
+        title: o.title, hint: o.hint, sel: sel ? 'true' : 'false',
+        style: 'min-height: 64px; padding: 10px 12px; border-radius: 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; text-align: left; ' +
+          (sel ? 'background: #15171C; color: #FFFFFF; border: 2px solid #15171C' : 'background: #FFFFFF; color: #15171C; border: 2px solid #E3E5EA'),
+        pick: () => this.setState({ dir: o.id })
+      };
+    });
+    const stops = {
+      afuera: { name: 'Av Castro Barros 443', meta: 'SM02 · entre Europa y Palestina', lines: ['10', '11', '12', '13', '14', '15', '17', '18', '19', '83'] },
+      centro: { name: 'Av Castro Barros 405-417', meta: 'PR01 · vereda de enfrente', lines: ['10', '11', '12', '13', '14', '15', '17', '18', '19'] }
+    };
+    return { dirs, stop: stops[this.state.dir] };
+  }
+}
+</script>
+</body>
+</html>

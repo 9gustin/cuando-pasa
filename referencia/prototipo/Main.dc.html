@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Próximos colectivos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F4FB8}a:hover{color:#163A88}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F5F7; color: #15171C; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="padding: 18px 20px 12px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF; border-bottom: 1px solid #E3E5EA">
+    <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+      <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6170">{{trip.name}} · ahora {{now}}</span>
+      <span style="font-size: 19px; font-weight: 800">{{trip.stop}}</span>
+      <span style="font-size: 12px; color: #4A5060">{{trip.dir}}</span>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <div role="tablist" aria-label="Viajes" style="display: flex; gap: 8px; flex-wrap: wrap">
+        <sc-for list="{{trips}}" as="t" hint-placeholder-count="2">
+          <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.name}}</button>
+        </sc-for>
+      </div>
+      <a href="Configurar.dc.html" style="height: 40px; padding: 0 14px; box-sizing: border-box; border-radius: 999px; border: 1px dashed #9AA0AB; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #15171C; text-decoration: none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+        Nuevo viaje
+      </a>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 20px 12px; display: flex; flex-direction: column; gap: 10px">
+
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <span style="font-size: 14px; font-weight: 800">Próximos colectivos</span>
+      <button onClick="{{toggleFilter}}" aria-expanded="{{filterOpenStr}}" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #CDD1D8; background: #FFFFFF; color: #15171C; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"></path></svg>
+        Líneas {{shownCount}}/{{totalCount}}
+      </button>
+    </div>
+
+    <sc-if value="{{filterOpen}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E3E5EA; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 12px; color: #4A5060">Tocá para ocultar las que no te sirven. Se guarda en este celular.</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{chips}}" as="c" hint-placeholder-count="10">
+            <button onClick="{{c.toggle}}" aria-pressed="{{c.on}}" style="{{c.style}}">{{c.num}} <span style="font-weight: 500">→ {{c.dest}}</span></button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-for list="{{rows}}" as="u" hint-placeholder-count="8">
+      <div style="{{u.style}}">
+        <span style="{{u.badge}}">{{u.num}}</span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <sc-if value="{{u.first}}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #C9CDD6">El próximo</span>
+          </sc-if>
+          <span style="{{u.destStyle}}">→ {{u.dest}}</span>
+          <span style="{{u.subStyle}}">{{u.left}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px">
+          <span style="{{u.timeStyle}}">{{u.time}}</span>
+          <span style="{{u.subStyle}}">en {{u.mins}} min</span>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{noLines}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 24px 16px; border-radius: 16px; background: #FFFFFF; border: 1px dashed #B8BDC6; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 16px; font-weight: 700">No viene ningún bondi con GPS</span>
+        <span style="font-size: 14px; color: #4A5060">Ninguna de tus líneas tiene coches en camino ahora. Probá actualizar en un rato.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{hiddenText}}" hint-placeholder-val="{{ true }}">
+      <span style="font-size: 12px; color: #4A5060; padding: 2px 4px">Ocultas: {{hiddenText}}</span>
+    </sc-if>
+
+    <button onClick="{{askDelete}}" style="align-self: center; height: 44px; padding: 0 14px; border: none; background: transparent; color: #9B1C12; font-size: 14px; font-weight: 600">Eliminar este viaje</button>
+  </div>
+
+  <div style="padding: 10px 20px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #FFFFFF; border-top: 1px solid #E3E5EA">
+    <span style="font-size: 13px; color: #4A5060">Actualizado hace {{ago}} s · cada 30 s</span>
+    <button onClick="{{refresh}}" style="height: 44px; padding: 0 18px; border-radius: 12px; border: none; background: #15171C; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>
+      Actualizar
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { trip: 0, filterOpen: false, hidden: { '15': true, '17': true }, ago: 12 };
+  }
+  componentDidMount() {
+    this.timer = setInterval(() => this.setState({ ago: this.state.ago >= 29 ? 0 : this.state.ago + 1 }), 1000);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+  data() {
+    const C = '#B35400', T = '#0B6E99';
+    return [
+      { name: 'Ir al trabajo', stop: 'Castro Barros 443 · SM02', dir: 'Hacia afuera · V. Rivera Indarte, Saldán, V. Allende…',
+        lines: [
+          { num: '18', dest: 'Saldán', color: C, time: '13:31', mins: 4, left: 1 },
+          { num: '15', dest: 'V. Allende Parque', color: C, time: '13:33', mins: 6, left: 2 },
+          { num: '13', dest: 'V. Rivera Indarte', color: C, time: '13:36', mins: 9, left: 3 },
+          { num: '17', dest: 'Nueva Esperanza', color: C, time: '13:38', mins: 11, left: 4 },
+          { num: '10', dest: 'Lasalle', color: C, time: '13:40', mins: 13, left: 5 },
+          { num: '19', dest: 'V. Warcalde', color: C, time: '13:42', mins: 15, left: 6 },
+          { num: '83', dest: 'Alto Alberdi', color: T, time: '13:49', mins: 22, left: 9 },
+          { num: '11', dest: 'V. Allende', color: C, time: '13:52', mins: 25, left: 10 },
+          { num: '12', dest: 'Policial', color: C, time: '13:58', mins: 31, left: null },
+          { num: '14', dest: 'Policial', color: C, time: '14:03', mins: 36, left: null }
+        ] },
+      { name: 'Vuelta', stop: 'Parada de ejemplo', dir: 'Hacia el centro', lines: [] }
+    ];
+  }
+  renderVals() {
+    const trips = this.data();
+    const ti = Math.min(this.state.trip, trips.length - 1);
+    const trip = trips[ti];
+    const hidden = this.state.hidden;
+    const visible = trip.lines.filter(l => !hidden[l.num]);
+    // Con dato de paradas primero (por hora); sin dato, al final y más chiquitos.
+    const known = visible.filter(l => l.left !== null);
+    const unknown = visible.filter(l => l.left === null);
+
+    const tabBase = 'height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; ';
+    const tripTabs = trips.map((t, i) => ({
+      name: t.name, sel: i === ti ? 'true' : 'false',
+      style: tabBase + (i === ti ? 'background: #15171C; color: #FFFFFF; border: 1px solid #15171C' : 'background: #FFFFFF; color: #15171C; border: 1px solid #CDD1D8'),
+      pick: () => this.setState({ trip: i })
+    }));
+
+    const row = (l, i, small) => {
+      const first = i === 0 && !small;
+      const size = small ? 34 : 44;
+      return {
+        num: l.num, dest: l.dest, time: l.time, mins: l.mins, first,
+        left: l.left === null ? 'sin dato de paradas' : (l.left === 1 ? 'falta 1 parada' : 'faltan ' + l.left + ' paradas'),
+        style: 'display: flex; align-items: center; gap: 14px; border-radius: 16px; ' +
+          (first ? 'padding: 14px 16px; background: #15171C; color: #FFFFFF'
+            : small ? 'padding: 8px 14px; background: transparent; color: #4A5060; border: 1px solid #E3E5EA'
+            : 'padding: 12px 16px; background: #FFFFFF; color: #15171C; border: 1px solid #E3E5EA'),
+        badge: 'min-width: ' + size + 'px; height: ' + size + 'px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #FFFFFF; font-size: ' + (small ? 15 : 20) + 'px; background: ' + (small ? '#8A8F99' : l.color),
+        destStyle: 'font-size: ' + (small ? 13 : 15) + 'px; font-weight: ' + (small ? 500 : 700),
+        subStyle: 'font-size: ' + (small ? 11 : 13) + 'px; font-weight: 500; color: ' + (first ? '#E4E6EB' : '#4A5060'),
+        timeStyle: 'font-size: ' + (first ? 28 : small ? 15 : 22) + 'px; font-weight: 800; line-height: 1.1'
+      };
+    };
+    const rows = known.map((l, i) => row(l, i, false)).concat(unknown.map((l, i) => row(l, i, true)));
+
+    const chips = trip.lines.map(l => {
+      const on = !hidden[l.num];
+      return {
+        num: l.num, dest: l.dest, on: on ? 'true' : 'false',
+        style: 'min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 700; ' +
+          (on ? 'background: #15171C; color: #FFFFFF; border: 1px solid #15171C' : 'background: #FFFFFF; color: #4A5060; border: 1px dashed #9AA0AB; text-decoration: line-through'),
+        toggle: () => this.setState({ hidden: Object.assign({}, hidden, { [l.num]: on }) })
+      };
+    });
+    const hiddenList = trip.lines.filter(l => hidden[l.num]).map(l => l.num);
+
+    return {
+      now: '13:27', trips: tripTabs, trip, rows, noLines: visible.length === 0, chips,
+      filterOpen: this.state.filterOpen, filterOpenStr: this.state.filterOpen ? 'true' : 'false',
+      toggleFilter: () => this.setState({ filterOpen: !this.state.filterOpen }),
+      shownCount: visible.length, totalCount: trip.lines.length,
+      hiddenText: hiddenList.length ? hiddenList.join(', ') : '',
+      ago: this.state.ago, refresh: () => this.setState({ ago: 0 }),
+      askDelete: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>
