@@ -2,7 +2,7 @@
 :root {
   --fondo: #F4F5F7; --tarjeta: #FFFFFF; --tinta: #15171C; --suave: #4A5060; --borde: #E3E5EA; --borde-fuerte: #CDD1D8;
   --azul: #1F4FB8; --rojo: #9B1C12; --aviso-fondo: #FFF4D6; --aviso-borde: #E8C766;
-  --sistema: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --sistema: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--fondo); color: var(--tinta); font-family: var(--sistema); -webkit-text-size-adjust: 100%; }
