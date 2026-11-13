@@ -87,6 +87,7 @@ test('validación: formato roto lanza ErrorFormato con mensaje claro', () => {
   assert.throws(() => validarBusqueda({}), ErrorFormato);
   assert.throws(() => validarLineas([]), ErrorFormato);
   assert.deepEqual(validarArribos({ parada: { codigo: 'X' } }).items, []); // parada sin coches
+  assert.deepEqual(validarArribos({ ok: false, errorMsg: 'No hay rutas que pasen por la parada' }).items, []); // visto en vivo
   const mezcla = validarArribos({ proximos_arribos: [fixture.respuesta.proximos_arribos[0], { coche: 1 }] });
   assert.equal(mezcla.items.length, 1);
   assert.equal(mezcla.descartados, 1);

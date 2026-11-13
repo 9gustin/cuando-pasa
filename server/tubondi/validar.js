@@ -35,6 +35,8 @@ export function problemaItemArribo(a) {
 export function validarArribos(json) {
   const cmd = 'proximos_arribos';
   if (!esObjeto(json)) throw new ErrorFormato(cmd, 'la respuesta no es un objeto');
+  // Parada sin rutas: {"ok":false,"errorMsg":"No hay rutas que pasen por la parada"} (visto en vivo con CE26)
+  if (json.ok === false && typeof json.errorMsg === 'string') return { parada: null, items: [], descartados: 0, sinRutas: true };
   let lista = json.proximos_arribos;
   if (lista == null && esObjeto(json.parada)) lista = []; // parada sin coches
   if (!Array.isArray(lista)) throw new ErrorFormato(cmd, 'falta proximos_arribos (lista)');

@@ -33,6 +33,14 @@ export function limpiarDesvio(s) {
   return t || null;
 }
 
+/** "C. UNIVERSITARIA A SALDAN" → "Saldan" (lo que viene después del primer " A "), en formato título. */
+export function destinoCorto(descripcion) {
+  const txt = String(descripcion ?? '').trim().replace(/[.\s]+$/, '');
+  const i = txt.search(/\sA\s/);
+  const dest = (i >= 0 ? txt.slice(i).replace(/^\sA\s+/, '') : txt) || txt;
+  return dest.toLowerCase().replace(/(^|\s)(\p{L})/gu, (m, sp, l) => sp + l.toUpperCase());
+}
+
 // ---------- tiempo ----------
 /** Segundos desde medianoche (hora argentina) de un instante. */
 export function segundosDelDia(ahoraMs) {
@@ -98,7 +106,8 @@ export function normalizarArribos(items, ahoraMs) {
     salida.push({
       linea: String(a.linea_nombre),
       ruta: String(a.ruta),
-      destino: a.ruta_descripcion,
+      destino: destinoCorto(a.ruta_descripcion),
+      destino_largo: a.ruta_descripcion,
       color: typeof a.color === 'string' ? a.color : null,
       coche: String(a.coche),
       instante,
