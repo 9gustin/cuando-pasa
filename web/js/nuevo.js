@@ -18,6 +18,32 @@ export const destinosEjemplo = (lineas) => {
 /** Distancia legible: "80 m", "1,2 km". */
 export const textoDistancia = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`);
 
+/**
+ * Ubicación del celular. Primero rápida (wifi/antenas, sirve adentro de casa); si falla por tiempo o no disponible,
+ * segundo intento con GPS. Devuelve { lat, lon } o lanza { codigo: 'permiso'|'no-disponible'|'tiempo'|'sin-soporte' }.
+ */
+export async function obtenerUbicacion(geo = globalThis.navigator?.geolocation) {
+  if (!geo) throw { codigo: 'sin-soporte' };
+  const intento = (opciones) => new Promise((resolve, reject) => {
+    geo.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (e) => reject({ codigo: e.code === 1 ? 'permiso' : e.code === 2 ? 'no-disponible' : 'tiempo' }),
+      opciones);
+  });
+  try { return await intento({ enableHighAccuracy: false, timeout: 8_000, maximumAge: 5 * 60_000 }); }
+  catch (e) {
+    if (e.codigo === 'permiso') throw e;
+    return intento({ enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 });
+  }
+}
+
+export const mensajeUbicacion = (codigo) => ({
+  permiso: 'No tenemos permiso para ver tu ubicación. Activalo en los ajustes del navegador, o escribí tu calle o una esquina.',
+  'no-disponible': 'Tu celular no pudo ubicarte. Probá de nuevo, o escribí tu calle o una esquina.',
+  tiempo: 'Tardó demasiado en ubicarte (a veces pasa adentro de casa). Probá de nuevo, o escribí tu calle, ej. “tomas guido”.',
+  'sin-soporte': 'Este navegador no puede darnos tu ubicación. Escribí tu calle o una esquina.',
+})[codigo] ?? 'No pudimos obtener tu ubicación. Escribí tu calle o una esquina.';
+
 /** Orden por cercanía (el servidor ya las manda así, pero no dependemos de eso). */
 export const porCercania = (paradas) => [...paradas].sort((a, b) => a.distancia_m - b.distancia_m);
 
@@ -33,12 +59,73 @@ export function montarNuevo(raiz, navegar) {
   async function cargarDetalle(codigo) {
     if (s.detalles[codigo]) return;
     s.detalles[codigo] = { estado: 'cargando' };
-    if (vivo) render();
+    if (vivo) actualizarDetalle(codigo);
     try {
       const d = await api.parada(codigo);
       s.detalles[codigo] = { estado: 'ok', sentido: d.parada.sentido, lineas: d.lineas };
     } catch { s.detalles[codigo] = { estado: 'error' }; }
-    if (vivo) render();
+    if (vivo) actualizarDetalle(codigo);
+  }
+
+  // Textos de cada parada del listado: [línea 1, línea 2]
+  function metaDe(p) {
+    const d = s.detalles[p.codigo];
+    const sentido = d?.estado === 'ok' ? (d.sentido === 'centro' || d.sentido === 'afuera' ? textoSentido(d.sentido) : 'sentido sin confirmar')
+      : d?.estado === 'cargando' ? 'mirando sentido…' : '';
+    return [`${p.codigo} · a ${textoDistancia(p.distancia_m)}${sentido ? ` · ${sentido}` : ''}`, d?.estado === 'ok' ? destinosEjemplo(d.lineas) : ''];
+  }
+
+  /**
+   * Cuando llega el detalle de una parada se cambia SOLO el texto, sin reemplazar los botones:
+   * si se redibuja el listado justo mientras el dedo toca un botón, el toque se pierde.
+   */
+  function actualizarDetalle(codigo) {
+    const p = s.paradas?.find((x) => x.codigo === codigo);
+    const btn = raiz.querySelector(`.parada-item[data-codigo="${CSS.escape(codigo)}"]`);
+    if (p && btn) {
+      const [m1, m2] = metaDe(p);
+      btn.querySelector('[data-meta="1"]').textContent = m1;
+      const l2 = btn.querySelector('[data-meta="2"]');
+      l2.textContent = m2; l2.hidden = !m2;
+    }
+    if (s.elegida?.codigo === codigo) pintarTarjeta();
+  }
+
+  function pintarTarjeta() {
+    const cont = raiz.querySelector('#tarjeta');
+    if (cont) pintar(cont, tarjetaHtml());
+  }
+
+  /** Marca la parada elegida en el listado sin redibujarlo. */
+  function marcarSeleccion() {
+    for (const b of raiz.querySelectorAll('.parada-item')) {
+      const sel = b.dataset.codigo === s.elegida?.codigo;
+      b.classList.toggle('sel', sel);
+      b.setAttribute('aria-checked', String(sel));
+    }
+    const crear = raiz.querySelector('[data-accion="crear"]');
+    if (crear) { crear.disabled = !s.elegida || s.creando; crear.textContent = s.elegida ? 'Crear viaje' : 'Elegí una parada'; }
+    const cont = raiz.querySelector('#tarjeta');
+    if (!cont && s.elegida) render(); else pintarTarjeta();
+    raiz.querySelector('#tarjeta')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function tarjetaHtml() {
+    const e = s.elegida;
+    if (!e) return html``;
+    const d = s.detalles[e.codigo] ?? {};
+    return html`
+      <div class="tarjeta parada-elegida">
+        <span class="etiqueta-mayus">Tu parada</span>
+        <strong class="parada-nombre">${e.nombre}</strong>
+        <span class="texto-suave">${e.codigo} · a ${textoDistancia(e.distancia_m)}${d.estado === 'ok' ? ` · ${textoSentido(d.sentido)}` : ''}</span>
+        ${d.estado === 'cargando' ? html`<span class="texto-suave">Buscando las líneas que pasan…</span>` : ''}
+        ${d.estado === 'error' ? html`<span class="texto-suave">No pudimos ver las líneas ahora, pero podés crear el viaje igual.</span>` : ''}
+        ${d.estado === 'ok' ? html`<div class="insignias">${d.lineas.length
+          ? [...new Set(d.lineas.map((l) => l.linea))].sort((a, b) => a.localeCompare(b, 'es', { numeric: true })).map((n) => html`<span class="insignia chica-i" style="background:${colorInsignia('#ff9500')}">${n}</span>`)
+          : html`<span class="texto-suave">No viene ningún bondi con GPS ahora, pero la parada sirve igual.</span>`}</div>` : ''}
+        <span class="texto-suave">Después, en la home, podés ocultar las líneas que no te sirven.</span>
+      </div>`;
   }
 
   /** Detalle de las primeras paradas, de a una (para no apilar pedidos a Tu Bondi). */
@@ -50,23 +137,19 @@ export function montarNuevo(raiz, navegar) {
   }
 
   function render() {
+    const scroll = raiz.querySelector('.contenido')?.scrollTop ?? 0;
     const enfocado = document.activeElement?.id;
     const pos = document.activeElement?.selectionStart;
     const e = s.elegida;
-    const det = (c) => s.detalles[c] ?? (s.paradas?.find((p) => p.codigo === c) ?? {});
-
     const itemParada = (p, i) => {
-      const d = s.detalles[p.codigo];
       const sel = e?.codigo === p.codigo;
-      const sentido = d?.estado === 'ok' ? (d.sentido === 'centro' || d.sentido === 'afuera' ? textoSentido(d.sentido) : 'sentido sin confirmar')
-        : d?.estado === 'cargando' ? 'mirando sentido…' : '';
-      const destinos = d?.estado === 'ok' ? destinosEjemplo(d.lineas) : '';
+      const [m1, m2] = metaDe(p);
       return html`<li><button class="parada-item ${sel ? 'sel' : ''}" role="radio" aria-checked="${sel}" data-accion="parada" data-codigo="${p.codigo}">
         <span class="parada-num">${i + 1}</span>
         <span class="parada-cuerpo">
           <span class="parada-titulo">${p.nombre}</span>
-          <span class="parada-meta">${p.codigo} · a ${textoDistancia(p.distancia_m)}${sentido ? ` · ${sentido}` : ''}</span>
-          ${destinos ? html`<span class="parada-meta">${destinos}</span>` : ''}
+          <span class="parada-meta" data-meta="1">${m1}</span>
+          <span class="parada-meta" data-meta="2" ${m2 ? '' : raw('hidden')}>${m2}</span>
         </span></button></li>`;
     };
 
@@ -84,7 +167,7 @@ export function montarNuevo(raiz, navegar) {
           <div class="campo">
             <label for="buscar">2 · ¿Dónde estás?</label>
             <div class="fila-input">
-              <input id="buscar" class="input" placeholder="Una esquina o calle, ej. Castro Barros y Europa" autocomplete="off" value="${s.texto}">
+              <input id="buscar" class="input" placeholder="Tu calle o una esquina, ej. Tomás Guido" autocomplete="off" value="${s.texto}">
               <button class="boton-cuadrado" data-accion="ubicacion" aria-label="Usar mi ubicación">${raw(ICONO_UBICACION)}</button>
             </div>
             ${s.cargandoBusca ? html`<span class="texto-suave">Buscando…</span>` : ''}
@@ -99,24 +182,15 @@ export function montarNuevo(raiz, navegar) {
             ${s.paradas && !s.paradas.length ? html`<div class="aviso">No encontramos paradas cerca de ese lugar.</div>` : ''}
             ${s.paradas?.length ? html`<ul class="lista-paradas" role="radiogroup" aria-label="Paradas cercanas">${s.paradas.map(itemParada)}</ul>
               <span class="texto-suave">¿No está la tuya? Probá con otra esquina más cerca de la parada.</span>` : ''}
-            ${e ? html`
-              <div class="tarjeta parada-elegida">
-                <span class="etiqueta-mayus">Tu parada</span>
-                <strong class="parada-nombre">${e.nombre}</strong>
-                <span class="texto-suave">${e.codigo} · a ${textoDistancia(e.distancia_m)}${det(e.codigo).estado === 'ok' ? ` · ${textoSentido(det(e.codigo).sentido)}` : ''}</span>
-                ${det(e.codigo).estado === 'cargando' ? html`<span class="texto-suave">Buscando las líneas que pasan…</span>` : ''}
-                ${det(e.codigo).estado === 'error' ? html`<span class="texto-suave">No pudimos ver las líneas ahora, pero podés crear el viaje igual.</span>` : ''}
-                ${det(e.codigo).estado === 'ok' ? html`<div class="insignias">${det(e.codigo).lineas.length
-                  ? [...new Set(det(e.codigo).lineas.map((l) => l.linea))].sort((a, b) => a.localeCompare(b, 'es', { numeric: true })).map((n) => html`<span class="insignia chica-i" style="background:${colorInsignia('#ff9500')}">${n}</span>`)
-                  : html`<span class="texto-suave">No viene ningún bondi con GPS ahora, pero la parada sirve igual.</span>`}</div>` : ''}
-                <span class="texto-suave">Después, en la home, podés ocultar las líneas que no te sirven.</span>
-              </div>` : ''}
+            <div id="tarjeta">${tarjetaHtml()}</div>
           </div>` : ''}
         </main>
         <footer class="pie solo">
           <button class="boton-primario ancho" data-accion="crear" ${e && !s.creando ? '' : raw('disabled')}>${e ? 'Crear viaje' : 'Elegí una parada'}</button>
         </footer>
       </div>`);
+    const cont = raiz.querySelector('.contenido');
+    if (cont) cont.scrollTop = scroll;
     if (enfocado) { const el = raiz.querySelector(`#${enfocado}`); if (el) { el.focus(); if (pos != null) try { el.setSelectionRange(pos, pos); } catch { /* sin selección */ } } }
   }
 
@@ -159,15 +233,16 @@ export function montarNuevo(raiz, navegar) {
     const a = b.dataset.accion;
     if (a === 'lugar') { const l = s.sugerencias[+b.dataset.i]; if (l) { s.texto = l.texto; cargarParadas(l.lat, l.lon, l); } }
     else if (a === 'ubicacion') {
-      if (!navigator.geolocation) { s.mensaje = 'Este navegador no puede darnos tu ubicación.'; return render(); }
       s.mensaje = 'Buscando tu ubicación…'; render();
-      navigator.geolocation.getCurrentPosition(
-        (pos) => { const { latitude: lat, longitude: lon } = pos.coords; s.texto = ''; cargarParadas(lat.toFixed(5), lon.toFixed(5), { texto: 'Mi ubicación', lat, lon }); },
-        (err) => { s.mensaje = err.code === 1 ? 'No tenemos permiso para ver tu ubicación. Podés buscar una esquina.' : 'No pudimos obtener tu ubicación. Podés buscar una esquina.'; render(); },
-        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 });
+      try {
+        const { lat, lon } = await obtenerUbicacion();
+        if (!vivo) return;
+        s.texto = '';
+        cargarParadas(lat.toFixed(5), lon.toFixed(5), { texto: 'Mi ubicación', lat, lon });
+      } catch (e) { if (vivo) { s.mensaje = mensajeUbicacion(e?.codigo); render(); } }
     } else if (a === 'parada') {
       s.elegida = s.paradas.find((p) => p.codigo === b.dataset.codigo) ?? s.elegida;
-      render();
+      marcarSeleccion();
       if (s.elegida) cargarDetalle(s.elegida.codigo);
     } else if (a === 'crear' && s.elegida && !s.creando) {
       s.creando = true; render();

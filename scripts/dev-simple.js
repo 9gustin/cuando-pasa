@@ -22,7 +22,8 @@ http.createServer(async (req, res) => {
     const rel = normalize(decodeURIComponent(pathname === '/' ? '/index.html' : pathname)).replace(/^[/\\]+/, '');
     const abs = join(web, rel);
     if (!abs.startsWith(web + sep)) throw new Error('fuera de web/');
+    const cuerpo = await readFile(abs); // se lee primero: si falta el archivo, todavía se puede responder 404
     res.writeHead(200, { 'content-type': TIPOS[extname(abs)] ?? 'application/octet-stream', 'cache-control': 'no-cache' });
-    res.end(await readFile(abs));
+    res.end(cuerpo);
   } catch { res.writeHead(404).end('No encontrado'); }
 }).listen(puerto, () => console.log(`MVP simple en http://localhost:${puerto}`));

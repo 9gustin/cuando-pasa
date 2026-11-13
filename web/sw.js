@@ -1,5 +1,5 @@
 // Service worker: la app abre sin conexión y, si no hay red, muestra el último JSON de la parada.
-const VERSION = 'cp-v3';
+const VERSION = 'cp-v5';
 const SHELL = [
   '/', '/estilos.css', '/manifest.webmanifest', '/iconos/icono.svg',
   '/js/app.js', '/js/home.js', '/js/nuevo.js', '/js/api.js', '/js/estado.js', '/js/util.js',
@@ -37,11 +37,15 @@ self.addEventListener('fetch', (e) => {
   }
   if (url.pathname.startsWith('/api/') || url.pathname === '/salud') return; // el resto de la API, siempre en vivo
 
-  // Archivos de la app: del caché al toque y se actualizan por detrás (stale-while-revalidate).
+  // Archivos de la app: red primero (así un deploy nuevo se ve al toque); sin red o si tarda mucho, lo guardado.
   e.respondWith((async () => {
     const cache = await caches.open(VERSION);
-    const guardado = await cache.match(req, { ignoreSearch: true });
-    const red = fetch(req).then((r) => { if (r.ok) cache.put(req, r.clone()); return r; }).catch(() => null);
-    return guardado ?? (await red) ?? (req.mode === 'navigate' ? cache.match('/') : Response.error());
+    try {
+      const r = await fetch(req, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) cache.put(req, r.clone());
+      return r;
+    } catch {
+      return (await cache.match(req, { ignoreSearch: true })) ?? (req.mode === 'navigate' ? cache.match('/') : Response.error());
+    }
   })());
 });

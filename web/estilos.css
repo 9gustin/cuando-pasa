@@ -114,3 +114,4 @@ a { color: var(--azul); }
 .parada-titulo { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
 .parada-meta { font-size: 12px; font-weight: 500; color: var(--suave); overflow-wrap: anywhere; }
 .parada-item.sel .parada-meta { color: #E4E6EB; }
+[hidden] { display: none !important; }
