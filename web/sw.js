@@ -1,5 +1,5 @@
 // Service worker: la app abre sin conexión y, si no hay red, muestra el último JSON de la parada.
-const VERSION = 'cp-v1';
+const VERSION = 'cp-v2';
 const SHELL = [
   '/', '/estilos.css', '/manifest.webmanifest', '/iconos/icono.svg',
   '/js/app.js', '/js/home.js', '/js/nuevo.js', '/js/api.js', '/js/estado.js', '/js/util.js',

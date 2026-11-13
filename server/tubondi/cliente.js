@@ -40,6 +40,7 @@ export function crearCliente({
   pausaCorteMs = 60_000,
   maxViejoMs = 30 * 60_000,  // hasta cuándo se sirve un dato viejo si Tu Bondi falla
   maxCache = 500,
+  ttlArribosMs = TTL.proximos_arribos, // 0 = sin caché (modo simple/Vercel)
   base = BASE_URL,
   userAgent = 'cuando-pasa/0.1',
   log = (o) => console.log(JSON.stringify(o)),
@@ -153,7 +154,7 @@ export function crearCliente({
 
   async function consultar(cmd, clave, ejecutar, etiqueta) {
     const previo = cache.get(clave);
-    if (previo && ahora() - previo.ts < TTL[cmd]) {
+    if (previo && ahora() - previo.ts < (cmd === 'proximos_arribos' ? ttlArribosMs : TTL[cmd])) {
       estadisticas.deCache++;
       log({ evento: 'tubondi', cmd, ...(etiqueta ? { parada: etiqueta } : {}), ms: 0, status: 'cache', cache: true });
       return { datos: previo.valor, desactualizado: false, obtenido: previo.ts, deCache: true };

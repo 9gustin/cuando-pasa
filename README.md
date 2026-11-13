@@ -42,3 +42,13 @@ fly status && curl https://cuando-pasa.fly.dev/salud
 
 Después: un monitor gratis (UptimeRobot o Better Stack) pegándole a `https://<app>.fly.dev/salud` cada 5 min, y abrir la
 URL desde los celulares → "Agregar a pantalla de inicio".
+
+## Versión MVP gratis en Vercel (sin base de datos, sin cron)
+`vercel.json` + `api/` publican la misma API como funciones: consultan a Tu Bondi **solo cuando alguien abre la app o
+aprieta Actualizar** (sin caché ni refresco automático; "faltan ~N paradas" se estima por distancia). No hay aprendizaje ni
+SQLite. El servidor completo (Fly.io, `server/`) queda aparte, para cuando haya que aprender paradas.
+
+```bash
+npx vercel login
+npx vercel --prod      # primera vez: contestar las preguntas (proyecto nuevo "cuando-pasa", directorio actual)
+```

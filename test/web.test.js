@@ -29,6 +29,8 @@ test('textos en español rioplatense', () => {
   assert.equal(textoFaltan(1), 'falta 1 parada');
   assert.equal(textoFaltan(3), 'faltan 3 paradas');
   assert.equal(textoFaltan(null), 'sin dato de paradas');
+  assert.equal(textoFaltan(3, 'distancia'), 'faltan ~3 paradas');
+  assert.equal(textoFaltan(1, 'distancia'), 'falta ~1 parada');
   assert.equal(textoSentido('centro'), 'Hacia el centro');
   assert.equal(textoSentido('afuera'), 'Hacia afuera');
 });

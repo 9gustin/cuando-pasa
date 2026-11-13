@@ -31,7 +31,12 @@ export function colorInsignia(hex) {
   return `#${c.map((x) => pad(x.toString(16))).join('')}`;
 }
 
-export const textoFaltan = (n) => (n === null || n === undefined ? 'sin dato de paradas' : n === 1 ? 'falta 1 parada' : `faltan ${n} paradas`);
+/** fuente 'distancia' = estimación por metros en línea recta: se marca con ~. */
+export const textoFaltan = (n, fuente) => {
+  if (n === null || n === undefined) return 'sin dato de paradas';
+  const aprox = fuente === 'distancia' ? '~' : '';
+  return n === 1 ? `falta ${aprox}1 parada` : `faltan ${aprox}${n} paradas`;
+};
 export const textoSentido = (s) => (s === 'centro' ? 'Hacia el centro' : s === 'afuera' ? 'Hacia afuera' : 'Sentido sin confirmar');
 
 export function debounce(fn, ms) {

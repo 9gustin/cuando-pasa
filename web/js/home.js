@@ -3,7 +3,6 @@ import { html, pintar, horaActual, colorInsignia, textoFaltan, textoSentido } fr
 import * as estado from './estado.js';
 import * as api from './api.js';
 
-const CADA_MS = 30_000;
 const ICONO_FILTRO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"></path></svg>';
 const ICONO_ACTUALIZAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>';
 const ICONO_MAS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>';
@@ -65,7 +64,7 @@ export function montarHome(raiz) {
             <div class="fila-centro">
               ${primero ? raw('<span class="etiqueta-proximo">El próximo</span>') : ''}
               <span class="destino">→ ${p.destino}</span>
-              <span class="sub">${textoFaltan(p.faltan_paradas)}</span>
+              <span class="sub">${textoFaltan(p.faltan_paradas, p.fuente_paradas)}</span>
             </div>
             <div class="fila-derecha">
               <span class="hora">${p.hora}</span>
@@ -132,7 +131,7 @@ export function montarHome(raiz) {
           <button class="boton-peligro" data-accion="eliminar">Eliminar este viaje</button>
         </main>
         <footer class="pie">
-          <span class="texto-suave">Actualizado <span id="hace">${datos ? hace() : '—'}</span> · cada 30 s</span>
+          <span class="texto-suave">Actualizado <span id="hace">${datos ? hace() : '—'}</span></span>
           <button class="boton-oscuro" data-accion="actualizar" ${cargando ? raw('disabled') : ''}>${raw(ICONO_ACTUALIZAR)} ${cargando ? 'Actualizando…' : 'Actualizar'}</button>
         </footer>
       </div>`);
@@ -191,18 +190,14 @@ export function montarHome(raiz) {
   raiz.addEventListener('click', alClick);
   raiz.addEventListener('toggle', alToggle, true);
 
-  const refresco = setInterval(() => { if (!document.hidden) cargar(); }, CADA_MS);
   const reloj = setInterval(() => {
     const a = raiz.querySelector('#ahora'); if (a) a.textContent = horaActual();
     const h = raiz.querySelector('#hace'); if (h && datos) h.textContent = hace();
   }, 1000);
-  const alVolver = () => { if (!document.hidden && (!datos || Date.now() - Date.parse(datos.actualizado) >= CADA_MS)) cargar(); };
-  document.addEventListener('visibilitychange', alVolver);
 
   function desmontar() {
-    clearInterval(refresco); clearInterval(reloj);
+    clearInterval(reloj);
     raiz.removeEventListener('click', alClick); raiz.removeEventListener('toggle', alToggle, true);
-    document.removeEventListener('visibilitychange', alVolver);
   }
 
   estado.fijarViajeActivo(activo.id);
