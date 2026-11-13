@@ -1,0 +1,7 @@
+.git
+data
+test
+referencia
+scripts
+*.md
+node_modules

@@ -4,6 +4,7 @@
 import { distanciaM } from '../tubondi/normalizar.js';
 
 const MAX_DIST_AL_TRAMO_M = 350; // más lejos que esto, el GPS no coincide con el recorrido aprendido (desvío): no se usa
+const TOLERANCIA_MIN = 5;        // el GPS solo vale si es coherente con los minutos de Tu Bondi (±5 min): evita coches de la vereda de enfrente
 const TOLERANCIA_PUNTA_M = 120;  // coche antes de la primera previa aprendida: solo se acepta si está muy cerca de ella
 
 /** Proyecta (en plano local, metros) el punto p sobre el segmento a→b. Devuelve { t (sin acotar), dist }. */
@@ -42,8 +43,14 @@ export function calcularFaltan(coche, previas, destino) {
     if (mejor.dist <= MAX_DIST_AL_TRAMO_M) {
       const antesDeLaPrimera = mejor.i === 0 && mejor.t < 0 &&
         distanciaM(c.lat, c.lon, pts[0].lat, pts[0].lon) > TOLERANCIA_PUNTA_M;
-      if (!antesDeLaPrimera) return { faltan: n - mejor.i, fuente: 'gps' };
-      return { faltan: null, fuente: null }; // más lejos de lo aprendido: todavía no sabemos cuántas
+      if (antesDeLaPrimera) return { faltan: null, fuente: null }; // más lejos de lo aprendido: todavía no sabemos cuántas
+      // ¿Coherente con el tiempo? El coche pasó la previa de orden k y le falta la de orden k-1: debería estar entre sus tiempos típicos.
+      const k = n - mejor.i;
+      const tk = previas.find((p) => p.orden === k)?.min_tipicos;
+      const tk1 = k > 1 ? previas.find((p) => p.orden === k - 1)?.min_tipicos : 0;
+      const coherente = !Number.isFinite(tk) || !Number.isFinite(coche.minutos) ||
+        (coche.minutos <= tk + TOLERANCIA_MIN && coche.minutos >= (tk1 ?? 0) - TOLERANCIA_MIN);
+      if (coherente) return { faltan: k, fuente: 'gps' };
     }
   }
 

@@ -1,0 +1,33 @@
+# Configuración de Fly.io (Etapa 5). NO se aplicó: falta el OK para crear la app y el volumen (ver README).
+# El nombre de app tiene que ser único en Fly; si "cuando-pasa" está tomado, cambialo.
+app = "cuando-pasa"
+primary_region = "eze"   # Buenos Aires
+
+[build]
+
+[env]
+  PORT = "8080"
+  DB_PATH = "/data/cuando-pasa.db"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"   # siempre prendida: el aprendizaje corre cada 10 min
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/salud"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -118,6 +118,12 @@ test('faltan por GPS: entre la previa 2 y la 1 → faltan 2 (la 1 y la tuya)', (
   assert.deepEqual(calcularFaltan(coche(-31.3945), previas, P), { faltan: 6, fuente: 'gps' });
 });
 
+test('faltan: GPS sobre el recorrido pero con minutos incoherentes (vereda de enfrente / sin salir) → no se usa', () => {
+  // junto a la previa 3 pero Tu Bondi dice que llega en 47 min
+  assert.deepEqual(calcularFaltan(coche(-31.3975, 47), previas, P), { faltan: null, fuente: null });
+  assert.equal(calcularFaltan(coche(-31.3975, 3.5), previas, P).faltan, 3);
+});
+
 test('faltan: coche más lejos de lo aprendido → sin dato; GPS fuera del recorrido → minutos', () => {
   assert.deepEqual(calcularFaltan(coche(-31.3700, 30), previas, P), { faltan: null, fuente: null });
   const desviado = { coche_lat: -31.3985, coche_lon: -64.19, minutos: 2.5 }; // ~950 m al costado
@@ -172,8 +178,8 @@ test('servicio parada: con previas aprendidas usa GPS y ordena primero los que t
   db.prepare('INSERT INTO parada (codigo, nombre, lat, lon, actualizado) VALUES (?,?,?,?,?)').run('X1', 'x', elegido.coche_lat, elegido.coche_lon, T0);
   db.prepare('INSERT INTO parada (codigo, nombre, lat, lon, actualizado) VALUES (?,?,?,?,?)').run('X0', 'y', (pp.lat + elegido.coche_lat) / 2, (pp.lon + elegido.coche_lon) / 2, T0);
   const ins = db.prepare('INSERT INTO previa VALUES (?,?,?,?,?,?,?,?)');
-  ins.run('SM02', elegido.linea, elegido.ruta, 1, 'X0', 3, 1, T0);
-  ins.run('SM02', elegido.linea, elegido.ruta, 2, 'X1', 6, 1, T0);
+  ins.run('SM02', elegido.linea, elegido.ruta, 1, 'X0', elegido.minutos / 2, 1, T0);
+  ins.run('SM02', elegido.linea, elegido.ruta, 2, 'X1', elegido.minutos, 1, T0);
   const r = await servicio.proximos('SM02');
   assert.equal(r.proximos[0].coche, elegido.coche, 'el que tiene dato va primero aunque sea el más lejano');
   assert.equal(r.proximos[0].fuente_paradas, 'gps');
