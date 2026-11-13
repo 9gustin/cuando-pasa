@@ -6,7 +6,7 @@ import { normalizarArribos, distanciaM } from '../tubondi/normalizar.js';
 import { calcularSentido } from '../servicios/sentido.js';
 
 const METROS_POR_PARADA = 350;
-const MAX_PARADAS = 4;
+const MAX_PARADAS = 8;
 export const CODIGO = /^[A-Za-z0-9]{2,8}$/;
 
 /**
@@ -66,24 +66,17 @@ export function crearServicio({ cliente = crearCliente({ ttlArribosMs: 0, log: (
     return r.datos.slice(0, 5).map((d) => ({ texto: d.display_name, lat: Number(d.lat), lon: Number(d.lon) }));
   }
 
-  async function paradas(lat, lon) {
+  /**
+   * Las paradas más cercanas al punto, ordenadas por distancia (un solo pedido a Tu Bondi).
+   * El sentido y las líneas de cada una se piden aparte con /api/parada/:codigo, cuando hacen falta.
+   */
+  async function paradas(lat, lon, { max = MAX_PARADAS } = {}) {
     const r = await cliente.paradasCercanas(lat, lon);
-    const cercanas = r.datos
+    return r.datos
       .map((p) => ({ codigo: p.codigo, nombre: p.parada_nombre, lat: Number(p.lat), lon: Number(p.lon) }))
       .map((p) => ({ ...p, distancia_m: Math.round(distanciaM(lat, lon, p.lat, p.lon)) }))
       .sort((a, b) => a.distancia_m - b.distancia_m)
-      .slice(0, MAX_PARADAS);
-    const salida = [];
-    for (const p of cercanas) {
-      let coches = [];
-      try { coches = (await arribos(p.codigo)).coches; } catch { /* sin datos de esa parada ahora */ }
-      salida.push({
-        ...p,
-        sentido: coches.length ? calcularSentido(p, coches) : '?',
-        lineas: lineasDe(coches).map(({ linea, destino }) => ({ linea, destino })),
-      });
-    }
-    return salida;
+      .slice(0, max);
   }
 
   return { proximos, buscar, paradas };

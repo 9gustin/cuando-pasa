@@ -103,3 +103,14 @@ a { color: var(--azul); }
 .insignia.chica-i { min-width: 32px; height: 28px; font-size: 13px; border-radius: 7px; }
 
 @media (prefers-reduced-motion: no-preference) { .contenido { scroll-behavior: smooth; } }
+
+/* lista de paradas cercanas (Nuevo viaje) */
+.lista-paradas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.parada-item { width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 14px; border: 2px solid var(--borde); background: var(--tarjeta); display: flex; align-items: center; gap: 12px; text-align: left; }
+.parada-item.sel { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+.parada-num { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #F0F2F5; color: var(--tinta); font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+.parada-item.sel .parada-num { background: #fff; }
+.parada-cuerpo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.parada-titulo { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.parada-meta { font-size: 12px; font-weight: 500; color: var(--suave); overflow-wrap: anywhere; }
+.parada-item.sel .parada-meta { color: #E4E6EB; }

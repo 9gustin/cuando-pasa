@@ -37,7 +37,8 @@ export const hacerHandlers = (opciones) => ({
   paradas: ruta('GET', async ({ res, url, servicio }) => {
     const lat = numero(url.searchParams.get('lat')), lon = numero(url.searchParams.get('lon'));
     if (lat === null || lon === null || Math.abs(lat) > 90 || Math.abs(lon) > 180) return enviar(res, 400, { error: 'lat y lon inválidas' });
-    enviar(res, 200, await servicio.paradas(lat, lon));
+    const max = Math.min(15, Math.max(1, Math.trunc(numero(url.searchParams.get('max')) ?? 8)));
+    enviar(res, 200, await servicio.paradas(lat, lon, { max }));
   }, opciones),
   parada: ruta('GET', async ({ req, res, url, servicio }) => {
     const codigo = codigoDe(req, url);

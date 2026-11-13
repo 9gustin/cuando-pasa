@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { html, esc, crudo, colorInsignia, textoFaltan, textoSentido } from '../web/js/util.js';
 import { minutosAhora, lineasUnicas } from '../web/js/home.js';
-import { porSentido, destinosEjemplo } from '../web/js/nuevo.js';
+import { porCercania, destinosEjemplo, textoDistancia } from '../web/js/nuevo.js';
 
 const texto = (f) => f.s;
 
@@ -47,16 +47,12 @@ test('lineasUnicas: una por número, orden numérico', () => {
   assert.deepEqual(r.map((l) => [l.linea, l.destino]), [['9', 'D'], ['10', 'B'], ['83', 'A']]);
 });
 
-test('porSentido elige la más cercana de cada lado; destinosEjemplo resume', () => {
-  const ps = [
-    { codigo: 'A', sentido: 'afuera', distancia_m: 90, lineas: [] },
-    { codigo: 'B', sentido: 'afuera', distancia_m: 30, lineas: [{ linea: '10', destino: 'Lasalle' }, { linea: '11', destino: 'V. Allende' }] },
-    { codigo: 'C', sentido: 'centro', distancia_m: 50, lineas: [] },
-    { codigo: 'D', sentido: '?', distancia_m: 10, lineas: [] },
-  ];
-  const r = porSentido(ps);
-  assert.equal(r.afuera.codigo, 'B');
-  assert.equal(r.centro.codigo, 'C');
-  assert.equal(destinosEjemplo(r.afuera), 'Lasalle, V. Allende…');
-  assert.equal(destinosEjemplo(null), 'sin datos todavía');
+test('paradas: orden por cercanía, distancia legible y destinos de ejemplo', () => {
+  const ps = [{ codigo: 'A', distancia_m: 300 }, { codigo: 'B', distancia_m: 80 }, { codigo: 'C', distancia_m: 1250 }];
+  assert.deepEqual(porCercania(ps).map((p) => p.codigo), ['B', 'A', 'C']);
+  assert.equal(ps[0].codigo, 'A', 'no muta el original');
+  assert.equal(textoDistancia(80), '80 m');
+  assert.equal(textoDistancia(1250), '1,3 km');
+  assert.equal(destinosEjemplo([{ destino: 'Lasalle' }, { destino: 'V. Allende' }, { destino: 'Lasalle' }]), 'Lasalle, V. Allende…');
+  assert.equal(destinosEjemplo([]), '');
 });
