@@ -28,13 +28,14 @@ Todo pedido pasa por `server/tubondi/cliente.js`: cola de 1 pedido/s, caché (15
 deduplicación en vuelo, timeout 10 s, renovación de sesión ante 408 y corte de emergencia. No se usan endpoints
 con `X-Device-FlakerParam`. El texto de desvíos se decodifica en el servidor y se muestra siempre escapado.
 
-## Publicar en Fly.io (Etapa 5) — pendiente de tu OK
+## Publicar en Fly.io (Etapa 5)
+La región `eze` (Buenos Aires) está retirada en Fly: se usa `gru` (São Paulo).
 Los archivos están listos (`Dockerfile`, `fly.toml`) pero **no se ejecutó nada**. Cuando quieras, estos son los comandos:
 
 ```bash
 fly auth login
-fly launch --no-deploy --copy-config --name cuando-pasa --region eze   # si el nombre está tomado, elegí otro y ajustá fly.toml
-fly volumes create data --region eze --size 1
+fly launch --no-deploy --copy-config --name cuando-pasa --region gru   # si el nombre está tomado, elegí otro y ajustá fly.toml
+fly volumes create data --region gru --size 1
 fly deploy
 fly status && curl https://cuando-pasa.fly.dev/salud
 ```

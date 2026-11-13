@@ -1,33 +1,35 @@
-# Configuración de Fly.io (Etapa 5). NO se aplicó: falta el OK para crear la app y el volumen (ver README).
-# El nombre de app tiene que ser único en Fly; si "cuando-pasa" está tomado, cambialo.
-app = "cuando-pasa"
-primary_region = "eze"   # Buenos Aires
+# fly.toml app configuration file generated for cuando-pasa on 2026-11-13T19:32:16Z
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'cuando-pasa'
+primary_region = 'gru'
 
 [build]
-
 [env]
-  PORT = "8080"
-  DB_PATH = "/data/cuando-pasa.db"
+  DB_PATH = '/data/cuando-pasa.db'
+  PORT = '8080'
 
 [[mounts]]
-  source = "data"
-  destination = "/data"
-  initial_size = "1gb"
+  source = 'data'
+  destination = '/data'
+  initial_size = '1gb'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "off"   # siempre prendida: el aprendizaje corre cada 10 min
+  auto_stop_machines = 'off'
   auto_start_machines = false
   min_machines_running = 1
 
   [[http_service.checks]]
-    method = "GET"
-    path = "/salud"
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "10s"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/salud'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
