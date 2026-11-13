@@ -107,7 +107,6 @@ export function montarNuevo(raiz, navegar) {
     if (crear) { crear.disabled = !s.elegida || s.creando; crear.textContent = s.elegida ? 'Crear viaje' : 'Elegí una parada'; }
     const cont = raiz.querySelector('#tarjeta');
     if (!cont && s.elegida) render(); else pintarTarjeta();
-    raiz.querySelector('#tarjeta')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   }
 
   function tarjetaHtml() {
