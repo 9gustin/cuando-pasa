@@ -122,6 +122,20 @@ export function normalizarArribos(items, ahoraMs) {
   return salida.sort((x, y) => x.instante - y.instante);
 }
 
+/** Coches que se muestran por línea + destino (los primeros por hora). */
+export const POR_LINEA = 2;
+
+/** Deja como máximo `n` coches por línea + destino, respetando el orden (por hora) que traen. */
+export function maxPorLinea(coches, n = POR_LINEA) {
+  const cuenta = new Map();
+  return coches.filter((c) => {
+    const k = `${c.linea}|${c.destino}`;
+    const i = (cuenta.get(k) ?? 0) + 1;
+    cuenta.set(k, i);
+    return i <= n;
+  });
+}
+
 // ---------- otros comandos ----------
 export const normalizarParadas = (paradas) => paradas.map((p) => ({
   codigo: p.codigo, nombre: p.parada_nombre, lat: Number(p.lat), lon: Number(p.lon),

@@ -50,6 +50,37 @@ export function validarArribos(json) {
   return { parada: esObjeto(json.parada) ? json.parada : null, items, descartados: motivos.length };
 }
 
+/** Motivo por el que un item de calcula_demora_de_linea no sirve, o null. Trae `linea` (id interno), no `linea_nombre`. */
+export function problemaItemDemora(a) {
+  if (!esObjeto(a)) return 'no es un objeto';
+  for (const campo of ['coche', 'linea']) {
+    if (!esTexto(a[campo]) && typeof a[campo] !== 'number') return `falta ${campo}`;
+  }
+  if (!Array.isArray(a.a) || a.a.length < 4 || !a.a.slice(0, 4).every(esNumeroLike)) return 'a no es [lat,lon,lat,lon]';
+  if (a.horaTeoricaAjustada != null && !/^\d{1,2}:\d{2}(:\d{2})?$/.test(a.horaTeoricaAjustada)) return 'horaTeoricaAjustada no es HH:MM:SS';
+  if (a.horaTeoricaAjustada == null && !esTexto(a.proximo)) return 'no hay hora ni proximo';
+  return null;
+}
+
+/**
+ * calcula_demora_de_linea → { items, descartados }. Es lo que usa la web oficial para listar TODOS los coches
+ * de una empresa que van a pasar por la parada (proximos_arribos trae uno solo por línea).
+ */
+export function validarDemoras(json) {
+  const cmd = 'calcula_demora_de_linea';
+  if (!esObjeto(json)) throw new ErrorFormato(cmd, 'la respuesta no es un objeto');
+  const lista = json.proximos ?? [];
+  if (!Array.isArray(lista)) throw new ErrorFormato(cmd, 'falta proximos (lista)');
+  const items = [];
+  const motivos = [];
+  for (const a of lista) {
+    const p = problemaItemDemora(a);
+    if (p) motivos.push(p); else items.push(a);
+  }
+  if (lista.length > 0 && items.length === 0) throw new ErrorFormato(cmd, `todos los items inválidos (${motivos[0]})`);
+  return { items, descartados: motivos.length };
+}
+
 export function validarParadasCercanas(json) {
   const cmd = 'paradas_cercanas';
   if (!esObjeto(json) || !Array.isArray(json.paradas)) throw new ErrorFormato(cmd, 'falta paradas (lista)');

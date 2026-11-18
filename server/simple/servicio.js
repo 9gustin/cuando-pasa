@@ -2,7 +2,7 @@
 // "Paradas que faltan" se estima por distancia en línea recta al coche (~350 m por parada) y se marca como aproximado.
 import { crearCliente, ErrorTuBondi } from '../tubondi/cliente.js';
 import { ErrorFormato } from '../tubondi/validar.js';
-import { normalizarArribos, distanciaM } from '../tubondi/normalizar.js';
+import { normalizarArribos, distanciaM, maxPorLinea } from '../tubondi/normalizar.js';
 import { calcularSentido } from '../servicios/sentido.js';
 
 const METROS_POR_PARADA = 350;
@@ -22,7 +22,8 @@ export function estimarFaltan(coche) {
 
 export function crearServicio({ cliente = crearCliente({ ttlArribosMs: 0, log: () => {} }) } = {}) {
   async function arribos(codigo) {
-    const r = await cliente.proximosArribos(codigo);
+    // Todos los coches (varios por línea); si el cliente no lo soporta (tests viejos), uno por línea.
+    const r = await (cliente.arribosCompletos ?? cliente.proximosArribos)(codigo);
     return { coches: normalizarArribos(r.datos.items, r.obtenido), nombre: r.datos.parada?.descripcion ?? null, ...r };
   }
 
@@ -37,7 +38,7 @@ export function crearServicio({ cliente = crearCliente({ ttlArribosMs: 0, log: (
 
   async function proximos(codigo) {
     const r = await arribos(codigo);
-    const filas = r.coches.map((c) => {
+    const filas = maxPorLinea(r.coches).map((c) => {
       const faltan = estimarFaltan(c);
       return {
         linea: c.linea, destino: c.destino, color: c.color, coche: c.coche, hora: c.hora, minutos: c.minutos,

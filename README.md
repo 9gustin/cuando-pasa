@@ -28,6 +28,12 @@ Todo pedido pasa por `server/tubondi/cliente.js`: cola de 1 pedido/s, caché (15
 deduplicación en vuelo, timeout 10 s, renovación de sesión ante 408 y corte de emergencia. No se usan endpoints
 con `X-Device-FlakerParam`. El texto de desvíos se decodifica en el servidor y se muestra siempre escapado.
 
+**Todos los coches, no uno por línea (18/11):** `proximos_arribos` trae **un solo coche por línea** (y sin
+`onlygps_array` a veces el equivocado). Por eso `cliente.arribosCompletos(P)` pide además
+`calcula_demora_de_linea` **por empresa** que pasa por la parada (lo mismo que hace la web oficial) y los combina
+(`server/tubondi/combinar.js`). Cuesta 1 + N pedidos por refresco (N = empresas; en SM02, 2). La API muestra
+**hasta 2 coches por línea** (`POR_LINEA` en `normalizar.js`). El aprendizaje sigue usando un solo pedido.
+
 ## Publicar en Fly.io (Etapa 5)
 La región `eze` (Buenos Aires) está retirada en Fly: se usa `gru` (São Paulo).
 Los archivos están listos (`Dockerfile`, `fly.toml`) pero **no se ejecutó nada**. Cuando quieras, estos son los comandos:

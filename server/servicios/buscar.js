@@ -21,7 +21,7 @@ export function crearServicioBuscar({ cliente, db, servicio }) {
     const salida = [];
     for (const p of cercanas) {
       let coches = [];
-      try { coches = (await servicio.arribos(p.codigo)).coches; } catch { /* sin datos de esa parada ahora */ }
+      try { coches = (await servicio.arribos(p.codigo, { completos: false })).coches; } catch { /* sin datos de esa parada ahora */ }
       const fila = db.prepare('SELECT sentido FROM parada WHERE codigo = ?').get(p.codigo);
       salida.push({
         ...p,

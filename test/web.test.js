@@ -89,3 +89,46 @@ test('ubicación: sin permiso no insiste; errores con mensaje claro', async () =
   assert.match(mensajeUbicacion('tiempo'), /adentro de casa/);
   assert.match(mensajeUbicacion('permiso'), /permiso/);
 });
+
+// --- estilo bondis ---
+import { clavesSegundos, bondisEnLaCalle } from '../web/js/home.js';
+import { colorEmpresa, bondiHtml, miniHtml } from '../web/js/bondi.js';
+import { lineasDeParada } from '../web/js/nuevo.js';
+
+test('clavesSegundos: el 2.º coche de la misma línea + destino es "el que sigue" (por minutos)', () => {
+  const s = clavesSegundos([
+    { linea: '11', destino: 'V. Allende', coche: 'B', minutos: 22 },
+    { linea: '11', destino: 'V. Allende', coche: 'A', minutos: 4 },
+    { linea: '18', destino: 'Saldán', coche: 'C', minutos: 9 },
+  ]);
+  assert.deepEqual([...s], ['11|B']);
+});
+
+test('bondisEnLaCalle: solo próximos 30 min, máx 8, más cerca = más a la derecha, carriles alternados', () => {
+  const l = Array.from({ length: 12 }, (_, i) => ({ linea: String(10 + i), color: '#FF9500', min: i * 3 }));
+  const c = bondisEnLaCalle(l);
+  assert.equal(c.length, 8);
+  assert.equal(c[0].pct, 100);
+  assert.ok(c[1].pct < c[0].pct);
+  assert.deepEqual(c.slice(0, 3).map((x) => x.carril), [false, true, false]);
+  assert.equal(bondisEnLaCalle([{ linea: '1', min: 31 }]).length, 0);
+});
+
+test('colorEmpresa: solo #rrggbb (el color viene de Tu Bondi y va a un style)', () => {
+  assert.equal(colorEmpresa('#0099CB'), '#0099CB');
+  assert.equal(colorEmpresa('red;background:url(x)'), '#FF9500');
+  assert.equal(colorEmpresa(undefined), '#FF9500');
+});
+
+test('bondiHtml y miniHtml escapan los datos de la API', () => {
+  const r = bondiHtml({ linea: '13<b>', destino: '<img src=x onerror=1>', color: '#FF9500', minutos: 4, hora: '16:40', detalle: 'falta 1 parada' }).s;
+  assert.ok(!r.includes('<img') && !r.includes('<b>'));
+  assert.ok(r.includes('&lt;img'));
+  assert.ok(r.includes('--empresa:#FF9500'));
+  const m = miniHtml({ linea: '"x', color: 'bad', pct: 150, carril: true }).s;
+  assert.ok(m.includes('left:calc(100% - 46px)') && m.includes('abajo') && m.includes('&quot;x'));
+});
+
+test('lineasDeParada: una por número, orden numérico', () => {
+  assert.deepEqual(lineasDeParada([{ linea: '83' }, { linea: '10' }, { linea: '10' }]).map((l) => l.linea), ['10', '83']);
+});

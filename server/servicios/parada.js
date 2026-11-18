@@ -1,5 +1,5 @@
 // Lista única de próximos colectivos de una parada (PLAN §6.1 y §7).
-import { normalizarArribos } from '../tubondi/normalizar.js';
+import { normalizarArribos, maxPorLinea } from '../tubondi/normalizar.js';
 import { registrarObservaciones } from '../aprendizaje/observar.js';
 import { calcularSentido } from './sentido.js';
 import { calcularFaltan } from './faltan.js';
@@ -10,9 +10,11 @@ export function crearServicioParada({ cliente, db, ahora = () => Date.now() }) {
   /**
    * Un pedido (con caché) a Tu Bondi + registro de observaciones + sentido.
    * Lo usan la API y la tarea de aprendizaje, así toda observación sale de pedidos que ya se hacían.
+   * completos: true = todos los coches (proximos_arribos + calcula_demora_de_linea por empresa, 1 + N pedidos);
+   * false = uno por línea (1 pedido; lo usa el aprendizaje para no gastar presupuesto).
    */
-  async function arribos(codigo) {
-    const r = await cliente.proximosArribos(codigo);
+  async function arribos(codigo, { completos = true } = {}) {
+    const r = completos && cliente.arribosCompletos ? await cliente.arribosCompletos(codigo) : await cliente.proximosArribos(codigo);
     const coches = normalizarArribos(r.datos.items, r.obtenido);
     const nombre = r.datos.parada?.descripcion ?? null;
     if (!r.desactualizado) {
@@ -55,7 +57,7 @@ export function crearServicioParada({ cliente, db, ahora = () => Date.now() }) {
     const previas = previasDe(codigo);
     const destino = { lat: fila?.lat, lon: fila?.lon };
 
-    const filas = r.coches.map((c) => {
+    const filas = maxPorLinea(r.coches).map((c) => {
       const { faltan, fuente } = calcularFaltan(c, previas.get(`${c.linea}|${c.ruta}`) ?? [], destino);
       return {
         linea: c.linea, destino: c.destino, color: c.color, coche: c.coche,

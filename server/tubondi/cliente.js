@@ -2,11 +2,16 @@
 // Reglas (PLAN §3.1): cola global de 1 pedido/s (máx. 2 en paralelo), caché, deduplicación de
 // pedidos en vuelo, timeout 10 s, renovación de sesión ante 408 (1 reintento), corte de emergencia.
 import {
-  ErrorFormato, validarArribos, validarParadasCercanas, validarBusqueda, validarLineas,
+  ErrorFormato, validarArribos, validarDemoras, validarParadasCercanas, validarBusqueda, validarLineas,
 } from './validar.js';
+import { combinarArribos } from './combinar.js';
 
 const BASE_URL = 'https://micronauta4.dnsalias.net/usuario';
 const CONF = 'cbaciudad';
+// Lo manda la web oficial (una entrada por empresa: TAMSE 408, Coniferal 411, SiBus 421, SolBus 422).
+// Sin esto, proximos_arribos a veces devuelve un coche que viene mucho más tarde (visto el 18/11: el 11 a 27 min
+// en vez del que venía a 7 min).
+const ONLYGPS_ARRAY = JSON.stringify({ 408: false, 411: false, 421: false, 422: false });
 
 export class ErrorTuBondi extends Error {
   constructor(mensaje, { causa, codigo } = {}) {
@@ -143,7 +148,7 @@ export function crearCliente({
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ conf: CONF, ...params }),
   }, etiqueta);
-  const get = (cmd, params) => pedir(cmd, `${base}/urbano2_cmd.php?${new URLSearchParams({ a: '', cmd, ...params, conf: CONF })}`, { method: 'GET' });
+  const get = (cmd, params, etiqueta) => pedir(cmd, `${base}/urbano2_cmd.php?${new URLSearchParams({ a: '', cmd, ...params, conf: CONF })}`, { method: 'GET' }, etiqueta);
 
   // ---------- caché + dedup + corte ----------
   function guardar(clave, valor) {
@@ -154,7 +159,8 @@ export function crearCliente({
 
   async function consultar(cmd, clave, ejecutar, etiqueta) {
     const previo = cache.get(clave);
-    if (previo && ahora() - previo.ts < (cmd === 'proximos_arribos' ? ttlArribosMs : TTL[cmd])) {
+    const ttl = cmd === 'proximos_arribos' || cmd === 'calcula_demora_de_linea' ? ttlArribosMs : TTL[cmd];
+    if (previo && ahora() - previo.ts < ttl) {
       estadisticas.deCache++;
       log({ evento: 'tubondi', cmd, ...(etiqueta ? { parada: etiqueta } : {}), ms: 0, status: 'cache', cache: true });
       return { datos: previo.valor, desactualizado: false, obtenido: previo.ts, deCache: true };
@@ -197,13 +203,25 @@ export function crearCliente({
 
   const redondear = (n) => Number(n).toFixed(4);
 
-  return {
-    /** Coches que vienen a una parada. datos = { parada, items } (items crudos validados). */
+  const api = {
+    /** Coches que vienen a una parada: UNO por línea. datos = { parada, items } (items crudos validados). */
     proximosArribos: (codigo) => consultar('proximos_arribos', `arr:${codigo}`, async () => {
       const { parada, items, descartados } = validarArribos(await post('proximos_arribos',
-        { codigo, onlygps: 'true', show80min: 'true' }, codigo));
+        { codigo, onlygps: 'true', show80min: 'true', onlygps_array: ONLYGPS_ARRAY }, codigo));
       if (descartados) log({ evento: 'tubondi_items_descartados', parada: codigo, descartados });
       return { parada, items };
+    }, codigo),
+
+    /**
+     * Todos los coches de UNA empresa que van a pasar por la parada (varios por línea), como en la web oficial.
+     * datos = { items } (items crudos validados; traen el id interno de la línea, no su nombre).
+     */
+    demorasParada: (codigo, empresa, lat, lon) => consultar('calcula_demora_de_linea', `dem:${codigo}:${empresa}`, async () => {
+      const { items, descartados } = validarDemoras(await get('calcula_demora_de_linea', {
+        lat1: lat, lon1: lon, lat2: lat, lon2: lon, linea: '0-0', ruta: '0', rutas: '', parada: codigo, cliente: empresa,
+      }, codigo));
+      if (descartados) log({ evento: 'tubondi_items_descartados', cmd: 'calcula_demora_de_linea', parada: codigo, descartados });
+      return { items };
     }, codigo),
 
     /** Paradas alrededor de un punto (caché 24 h por punto redondeado a 4 decimales). */
@@ -228,6 +246,36 @@ export function crearCliente({
       ...estadisticas,
     }),
   };
+
+  /**
+   * proximos_arribos + calcula_demora_de_linea de cada empresa que pasa por la parada, combinados:
+   * así aparecen también el 2.º (y 3.º…) coche de cada línea. Misma forma que proximosArribos.
+   * Si falla alguna demora, se devuelve lo que haya (proximos_arribos solo) con completo = false.
+   */
+  api.arribosCompletos = async (codigo) => {
+    const r = await api.proximosArribos(codigo);
+    const items = r.datos.items;
+    const empresas = [...new Set(items.map((a) => a.cliente).filter((c) => c != null).map(String))];
+    if (!items.length || !empresas.length) return { ...r, completo: true };
+    const [lat, lon] = items[0].a.map(Number);
+    const resultados = await Promise.allSettled(empresas.map((e) => api.demorasParada(codigo, e, lat, lon)));
+    const demoras = [];
+    let completo = true;
+    let desactualizado = r.desactualizado;
+    resultados.forEach((res, i) => {
+      if (res.status === 'fulfilled') {
+        demoras.push({ cliente: empresas[i], items: res.value.datos.items });
+        desactualizado ||= res.value.desactualizado;
+      } else {
+        completo = false;
+        log({ evento: 'tubondi_aviso', cmd: 'calcula_demora_de_linea', parada: codigo, empresa: empresas[i], error: res.reason?.message });
+      }
+    });
+    const comb = combinarArribos(items, demoras);
+    return { ...r, desactualizado, completo, datos: { parada: r.datos.parada, items: comb.items } };
+  };
+
+  return api;
 }
 
 let porDefecto = null;

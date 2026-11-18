@@ -23,7 +23,7 @@ export async function aprenderParada(codigo, { cliente, servicio, db, presupuest
   const hayPresupuesto = () => gastados < presupuesto;
   const resumen = { parada: codigo, pedidos: 0, candidatas: 0, rutas: [] };
 
-  const base = await servicio.arribos(codigo);
+  const base = await servicio.arribos(codigo, { completos: false });
   if (!base.deCache) gastados++;
   const grupos = new Map();
   for (const c of base.coches) {
@@ -58,7 +58,7 @@ export async function aprenderParada(codigo, { cliente, servicio, db, presupuest
       if (!hayPresupuesto()) break;
       consultadas.add(p.codigo);
       try {
-        const r = await servicio.arribos(p.codigo);
+        const r = await servicio.arribos(p.codigo, { completos: false });
         if (!r.deCache) gastados++;
         resumen.candidatas++;
       } catch (e) { gastados++; log({ evento: 'aprendizaje_aviso', parada: p.codigo, error: e?.message }); }
